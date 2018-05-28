@@ -170,7 +170,8 @@ arv_buffer_get_chunk_data (ArvBuffer *buffer, guint64 chunk_id, size_t *size)
 
 	g_return_val_if_fail (ARV_IS_BUFFER (buffer), NULL);
 	g_return_val_if_fail (buffer->priv->data != NULL, NULL);
-	g_return_val_if_fail (buffer->priv->gvsp_payload_type == ARV_GVSP_PAYLOAD_TYPE_CHUNK_DATA, NULL);
+	g_return_val_if_fail (buffer->priv->payload_type == ARV_BUFFER_PAYLOAD_TYPE_CHUNK_DATA ||
+			      buffer->priv->payload_type == ARV_BUFFER_PAYLOAD_TYPE_EXTENDED_CHUNK_DATA, NULL);
 
 	if (buffer->priv->status != ARV_BUFFER_STATUS_SUCCESS)
 		return NULL;
@@ -179,19 +180,30 @@ arv_buffer_get_chunk_data (ArvBuffer *buffer, guint64 chunk_id, size_t *size)
 	offset = buffer->priv->size - sizeof (ArvChunkInfos);
 	while (offset > 0) {
 		infos = (ArvChunkInfos *) &data[offset];
-		if (GUINT32_FROM_BE (infos->id) == chunk_id) {
+		guint64 id;
+		size_t chunk_size;
+
+		if (buffer->priv->chunk_endianness == G_BIG_ENDIAN) {
+			id = GUINT32_FROM_BE (infos->id);
+			chunk_size = GUINT32_FROM_BE (infos->size);
+		} else {
+			id = GUINT32_FROM_LE (infos->id);
+			chunk_size = GUINT32_FROM_LE (infos->size);
+		}
+
+		if (id == chunk_id) {
 			ptrdiff_t data_offset;
 
-			data_offset = offset - GUINT32_FROM_BE (infos->size);
+			data_offset = offset - chunk_size;
 			if (data_offset >= 0) {
 				if (size != NULL)
-					*size = GUINT32_FROM_BE (infos->size);
+					*size = chunk_size;
 				return &data[data_offset];
 			} else
 		       		return NULL;
 		}
-		if (GUINT32_FROM_BE (infos->size) > 0)
-			offset = offset - GUINT32_FROM_BE (infos->size) - sizeof (ArvChunkInfos);
+		if (chunk_size > 0)
+			offset = offset - chunk_size - sizeof (ArvChunkInfos);
 		else
 			offset = 0;
 	};
@@ -253,28 +265,7 @@ arv_buffer_get_payload_type (ArvBuffer *buffer)
 {
 	g_return_val_if_fail (ARV_IS_BUFFER (buffer), -1);
 
-	switch (buffer->priv->gvsp_payload_type) {
-		case ARV_GVSP_PAYLOAD_TYPE_IMAGE:
-			return ARV_BUFFER_PAYLOAD_TYPE_IMAGE;
-		case ARV_GVSP_PAYLOAD_TYPE_RAWDATA:
-			return ARV_BUFFER_PAYLOAD_TYPE_RAWDATA;
-		case ARV_GVSP_PAYLOAD_TYPE_FILE:
-			return ARV_BUFFER_PAYLOAD_TYPE_FILE;
-		case ARV_GVSP_PAYLOAD_TYPE_CHUNK_DATA:
-			return ARV_BUFFER_PAYLOAD_TYPE_CHUNK_DATA;
-		case ARV_GVSP_PAYLOAD_TYPE_EXTENDED_CHUNK_DATA:
-			return ARV_BUFFER_PAYLOAD_TYPE_EXTENDED_CHUNK_DATA;
-		case ARV_GVSP_PAYLOAD_TYPE_JPEG:
-			return ARV_BUFFER_PAYLOAD_TYPE_JPEG;
-		case ARV_GVSP_PAYLOAD_TYPE_JPEG2000:
-			return ARV_BUFFER_PAYLOAD_TYPE_JPEG2000;
-		case ARV_GVSP_PAYLOAD_TYPE_H264:
-			return ARV_BUFFER_PAYLOAD_TYPE_H264;
-		case ARV_GVSP_PAYLOAD_TYPE_MULTIZONE_IMAGE:
-			return ARV_BUFFER_PAYLOAD_TYPE_MULTIZONE_IMAGE;
-		default:
-			return ARV_BUFFER_PAYLOAD_TYPE_UNKNOWN;
-	}
+	return buffer->priv->payload_type;
 }
 
 /**
@@ -395,7 +386,7 @@ void
 arv_buffer_get_image_region (ArvBuffer *buffer, gint *x, gint *y, gint *width, gint *height)
 {
 	g_return_if_fail (ARV_IS_BUFFER (buffer));
-	g_return_if_fail (buffer->priv->gvsp_payload_type == ARV_GVSP_PAYLOAD_TYPE_IMAGE);
+	g_return_if_fail (buffer->priv->payload_type == ARV_BUFFER_PAYLOAD_TYPE_IMAGE);
 
 	if (x != NULL)
 		*x = buffer->priv->x_offset;
@@ -422,7 +413,7 @@ gint
 arv_buffer_get_image_width (ArvBuffer *buffer)
 {
 	g_return_val_if_fail (ARV_IS_BUFFER (buffer), 0);
-	g_return_val_if_fail (buffer->priv->gvsp_payload_type == ARV_GVSP_PAYLOAD_TYPE_IMAGE, 0);
+	g_return_val_if_fail (buffer->priv->payload_type == ARV_BUFFER_PAYLOAD_TYPE_IMAGE, 0);
 
 	return buffer->priv->width;
 }
@@ -442,7 +433,7 @@ gint
 arv_buffer_get_image_height (ArvBuffer *buffer)
 {
 	g_return_val_if_fail (ARV_IS_BUFFER (buffer), 0);
-	g_return_val_if_fail (buffer->priv->gvsp_payload_type == ARV_GVSP_PAYLOAD_TYPE_IMAGE, 0);
+	g_return_val_if_fail (buffer->priv->payload_type == ARV_BUFFER_PAYLOAD_TYPE_IMAGE, 0);
 
 	return buffer->priv->height;
 }
@@ -462,7 +453,7 @@ gint
 arv_buffer_get_image_x (ArvBuffer *buffer)
 {
 	g_return_val_if_fail (ARV_IS_BUFFER (buffer), 0);
-	g_return_val_if_fail (buffer->priv->gvsp_payload_type == ARV_GVSP_PAYLOAD_TYPE_IMAGE, 0);
+	g_return_val_if_fail (buffer->priv->payload_type == ARV_BUFFER_PAYLOAD_TYPE_IMAGE, 0);
 
 	return buffer->priv->x_offset;
 }
@@ -482,7 +473,7 @@ gint
 arv_buffer_get_image_y (ArvBuffer *buffer)
 {
 	g_return_val_if_fail (ARV_IS_BUFFER (buffer), 0);
-	g_return_val_if_fail (buffer->priv->gvsp_payload_type == ARV_GVSP_PAYLOAD_TYPE_IMAGE, 0);
+	g_return_val_if_fail (buffer->priv->payload_type == ARV_BUFFER_PAYLOAD_TYPE_IMAGE, 0);
 
 	return buffer->priv->y_offset;
 }
@@ -502,7 +493,7 @@ ArvPixelFormat
 arv_buffer_get_image_pixel_format (ArvBuffer *buffer)
 {
 	g_return_val_if_fail (ARV_IS_BUFFER (buffer), 0);
-	g_return_val_if_fail (buffer->priv->gvsp_payload_type == ARV_GVSP_PAYLOAD_TYPE_IMAGE, 0);
+	g_return_val_if_fail (buffer->priv->payload_type == ARV_BUFFER_PAYLOAD_TYPE_IMAGE, 0);
 
 	return buffer->priv->pixel_format;
 }

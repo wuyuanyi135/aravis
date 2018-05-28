@@ -138,7 +138,8 @@ arv_uv_stream_thread (void *data)
 					if (buffer != NULL) {
 						buffer->priv->system_timestamp_ns = g_get_real_time () * 1000LL;
 						buffer->priv->status = ARV_BUFFER_STATUS_FILLING;
-						buffer->priv->gvsp_payload_type = ARV_GVSP_PAYLOAD_TYPE_IMAGE;
+						buffer->priv->payload_type = arv_uvsp_packet_get_buffer_payload_type (packet);
+						buffer->priv->chunk_endianness = G_LITTLE_ENDIAN;
 						arv_uvsp_packet_get_region (packet,
 									    &buffer->priv->width,
 									    &buffer->priv->height,
