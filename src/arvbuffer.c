@@ -65,6 +65,8 @@ arv_buffer_new_full (size_t size, void *preallocated, void *user_data, GDestroyN
 	buffer->priv->size = size;
 	buffer->priv->user_data = user_data;
 	buffer->priv->user_data_destroy_func = user_data_destroy_func;
+	buffer->priv->chunk_endianness = G_BIG_ENDIAN;
+	buffer->priv->payload_type = ARV_BUFFER_PAYLOAD_TYPE_UNKNOWN;
 
 	if (preallocated != NULL) {
 		buffer->priv->is_preallocated = TRUE;
@@ -179,9 +181,10 @@ arv_buffer_get_chunk_data (ArvBuffer *buffer, guint64 chunk_id, size_t *size)
 	data = buffer->priv->data;
 	offset = buffer->priv->size - sizeof (ArvChunkInfos);
 	while (offset > 0) {
+		guint32 id;
+		guint32 chunk_size;
+
 		infos = (ArvChunkInfos *) &data[offset];
-		guint64 id;
-		size_t chunk_size;
 
 		if (buffer->priv->chunk_endianness == G_BIG_ENDIAN) {
 			id = GUINT32_FROM_BE (infos->id);
@@ -386,7 +389,8 @@ void
 arv_buffer_get_image_region (ArvBuffer *buffer, gint *x, gint *y, gint *width, gint *height)
 {
 	g_return_if_fail (ARV_IS_BUFFER (buffer));
-	g_return_if_fail (buffer->priv->payload_type == ARV_BUFFER_PAYLOAD_TYPE_IMAGE);
+	g_return_if_fail (buffer->priv->payload_type == ARV_BUFFER_PAYLOAD_TYPE_IMAGE ||
+			  buffer->priv->payload_type == ARV_BUFFER_PAYLOAD_TYPE_EXTENDED_CHUNK_DATA);
 
 	if (x != NULL)
 		*x = buffer->priv->x_offset;
@@ -413,7 +417,8 @@ gint
 arv_buffer_get_image_width (ArvBuffer *buffer)
 {
 	g_return_val_if_fail (ARV_IS_BUFFER (buffer), 0);
-	g_return_val_if_fail (buffer->priv->payload_type == ARV_BUFFER_PAYLOAD_TYPE_IMAGE, 0);
+	g_return_val_if_fail (buffer->priv->payload_type == ARV_BUFFER_PAYLOAD_TYPE_IMAGE ||
+			      buffer->priv->payload_type == ARV_BUFFER_PAYLOAD_TYPE_EXTENDED_CHUNK_DATA, 0);
 
 	return buffer->priv->width;
 }
@@ -433,7 +438,8 @@ gint
 arv_buffer_get_image_height (ArvBuffer *buffer)
 {
 	g_return_val_if_fail (ARV_IS_BUFFER (buffer), 0);
-	g_return_val_if_fail (buffer->priv->payload_type == ARV_BUFFER_PAYLOAD_TYPE_IMAGE, 0);
+	g_return_val_if_fail (buffer->priv->payload_type == ARV_BUFFER_PAYLOAD_TYPE_IMAGE ||
+			      buffer->priv->payload_type == ARV_BUFFER_PAYLOAD_TYPE_EXTENDED_CHUNK_DATA, 0);
 
 	return buffer->priv->height;
 }
@@ -453,7 +459,8 @@ gint
 arv_buffer_get_image_x (ArvBuffer *buffer)
 {
 	g_return_val_if_fail (ARV_IS_BUFFER (buffer), 0);
-	g_return_val_if_fail (buffer->priv->payload_type == ARV_BUFFER_PAYLOAD_TYPE_IMAGE, 0);
+	g_return_val_if_fail (buffer->priv->payload_type == ARV_BUFFER_PAYLOAD_TYPE_IMAGE ||
+			      buffer->priv->payload_type == ARV_BUFFER_PAYLOAD_TYPE_EXTENDED_CHUNK_DATA, 0);
 
 	return buffer->priv->x_offset;
 }
@@ -473,7 +480,8 @@ gint
 arv_buffer_get_image_y (ArvBuffer *buffer)
 {
 	g_return_val_if_fail (ARV_IS_BUFFER (buffer), 0);
-	g_return_val_if_fail (buffer->priv->payload_type == ARV_BUFFER_PAYLOAD_TYPE_IMAGE, 0);
+	g_return_val_if_fail (buffer->priv->payload_type == ARV_BUFFER_PAYLOAD_TYPE_IMAGE ||
+			      buffer->priv->payload_type == ARV_BUFFER_PAYLOAD_TYPE_EXTENDED_CHUNK_DATA, 0);
 
 	return buffer->priv->y_offset;
 }
@@ -493,7 +501,8 @@ ArvPixelFormat
 arv_buffer_get_image_pixel_format (ArvBuffer *buffer)
 {
 	g_return_val_if_fail (ARV_IS_BUFFER (buffer), 0);
-	g_return_val_if_fail (buffer->priv->payload_type == ARV_BUFFER_PAYLOAD_TYPE_IMAGE, 0);
+	g_return_val_if_fail (buffer->priv->payload_type == ARV_BUFFER_PAYLOAD_TYPE_IMAGE ||
+			      buffer->priv->payload_type == ARV_BUFFER_PAYLOAD_TYPE_EXTENDED_CHUNK_DATA, 0);
 
 	return buffer->priv->pixel_format;
 }

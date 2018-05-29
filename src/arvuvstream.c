@@ -140,12 +140,15 @@ arv_uv_stream_thread (void *data)
 						buffer->priv->status = ARV_BUFFER_STATUS_FILLING;
 						buffer->priv->payload_type = arv_uvsp_packet_get_buffer_payload_type (packet);
 						buffer->priv->chunk_endianness = G_LITTLE_ENDIAN;
-						arv_uvsp_packet_get_region (packet,
-									    &buffer->priv->width,
-									    &buffer->priv->height,
-									    &buffer->priv->x_offset,
-									    &buffer->priv->y_offset);
-						buffer->priv->pixel_format = arv_uvsp_packet_get_pixel_format (packet);
+						if (buffer->priv->payload_type == ARV_BUFFER_PAYLOAD_TYPE_IMAGE ||
+						    buffer->priv->payload_type == ARV_BUFFER_PAYLOAD_TYPE_EXTENDED_CHUNK_DATA) {
+							arv_uvsp_packet_get_region (packet,
+										    &buffer->priv->width,
+										    &buffer->priv->height,
+										    &buffer->priv->x_offset,
+										    &buffer->priv->y_offset);
+							buffer->priv->pixel_format = arv_uvsp_packet_get_pixel_format (packet);
+						}
 						buffer->priv->frame_id = arv_uvsp_packet_get_frame_id (packet);
 						buffer->priv->timestamp_ns = arv_uvsp_packet_get_timestamp (packet);
 						offset = 0;
