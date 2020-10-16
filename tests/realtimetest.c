@@ -46,7 +46,7 @@
 #endif
 
 static void print_status(const char *t) {
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(G_OS_WIN32)
 	int ret;
 
 	if ((ret = sched_getscheduler(0)) < 0) {
@@ -82,7 +82,7 @@ static void print_status(const char *t) {
 	} else
 		fprintf(stderr, "Neither SCHED_RR nor SCHED_OTHER.\n");
 #else
-	printf ("SCHED API not supported on OSX\n");
+	printf ("SCHED API not supported on OSX/Windows\n");
 #endif
 }
 
@@ -122,7 +122,7 @@ int main(int argc, char *argv[]) {
 		g_error_free (error);
 		error = NULL;
 	} else
-		printf ("RTTimeUSecMax = %Ld\n", rttime_usec_max);
+		printf ("RTTimeUSecMax = %lld\n", rttime_usec_max);
 
 	memset(&rlim, 0, sizeof(rlim));
 	rlim.rlim_cur = rlim.rlim_max = 100000000ULL; /* 100ms */

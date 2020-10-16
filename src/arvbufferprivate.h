@@ -1,6 +1,6 @@
 /* Aravis - Digital camera library
  *
- * Copyright © 2009-2010 Emmanuel Pacaud
+ * Copyright © 2009-2019 Emmanuel Pacaud
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -28,14 +28,14 @@
 #endif
 
 #include <arvbuffer.h>
-#include <arvgvsp.h>
+#include <arvgvspprivate.h>
 
 G_BEGIN_DECLS
 
-struct _ArvBufferPrivate {
+typedef struct {
 	size_t size;
 	gboolean is_preallocated;
-	void *data;
+	unsigned char *data;
 
 	void *user_data;
 	GDestroyNotify user_data_destroy_func;
@@ -46,7 +46,7 @@ struct _ArvBufferPrivate {
 
 	guint32 chunk_endianness;
 
-	guint32 frame_id;
+	guint64 frame_id;
 	guint64 timestamp_ns;
 	guint64 system_timestamp_ns;
 
@@ -56,7 +56,20 @@ struct _ArvBufferPrivate {
 	guint32 height;
 
 	ArvPixelFormat pixel_format;
+} ArvBufferPrivate;
+
+struct _ArvBuffer {
+	GObject	object;
+
+	ArvBufferPrivate *priv;
 };
+
+struct _ArvBufferClass {
+	GObjectClass parent_class;
+};
+
+gboolean	arv_buffer_payload_type_has_chunks 	(ArvBufferPayloadType payload_type);
+gboolean	arv_buffer_payload_type_has_aoi 	(ArvBufferPayloadType payload_type);
 
 G_END_DECLS
 

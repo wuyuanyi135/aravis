@@ -1,6 +1,6 @@
 /* Aravis - Digital camera library
  *
- * Copyright © 2009-2016 Emmanuel Pacaud
+ * Copyright © 2009-2019 Emmanuel Pacaud
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -20,11 +20,11 @@
  * Author: Emmanuel Pacaud <emmanuel@gnome.org>
  */
 
-#include <arvuvsp.h>
+#include <arvuvspprivate.h>
 #include <arvstr.h>
 #include <arvmisc.h>
 
-/**
+/*
  * SECTION: arvuvsp
  * @short_description: USB3Vision stream packet handling
  */

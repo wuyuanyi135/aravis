@@ -219,8 +219,26 @@
 
 	<Enumeration Name="PixelFormat" NameSpace="Standard">
 		<DisplayName>Pixel format</DisplayName>
+		<EnumEntry Name="BayerBG8" NameSpace="Standard">
+			<Value>17301515</Value>
+		</EnumEntry>
+		<EnumEntry Name="BayerGB8" NameSpace="Standard">
+			<Value>17301514</Value>
+		</EnumEntry>
+		<EnumEntry Name="BayerGR8" NameSpace="Standard">
+			<Value>17301512</Value>
+		</EnumEntry>
+		<EnumEntry Name="BayerRG8" NameSpace="Standard">
+			<Value>17301513</Value>
+		</EnumEntry>
 		<EnumEntry Name="Mono8" NameSpace="Standard">
 			<Value>17301505</Value>
+		</EnumEntry>
+		<EnumEntry Name="RGB8" NameSpace="Standard">
+			<Value>35127316</Value>
+		</EnumEntry>
+		<EnumEntry Name="Mono16" NameSpace="Standard">
+			<Value>17825799</Value>
 		</EnumEntry>
 		<pValue>PixelFormatRegister</pValue>
 	</Enumeration>
@@ -287,7 +305,13 @@
 		<Endianess>BigEndian</Endianess>
 	</IntReg>
 
-	<Converter Name="AcquisitionFrameRate" NameSpace="Standard">
+	<Float Name="AcquisitionFrameRate">
+	  <pValue>AcquisitionFrameRateConverter</pValue>
+	  <Min>0.1</Min>
+	  <Max>100.0</Max>
+	</Float>
+
+	<Converter Name="AcquisitionFrameRateConverter">
 		<Description>Frame rate, in frames per second.</Description>
 		<FormulaTo>(1000000 / FROM)</FormulaTo>
 		<FormulaFrom>(1000000 / TO)</FormulaFrom>
@@ -451,7 +475,8 @@
 	<IntSwissKnife Name="PayloadSize" NameSpace="Standard">
 		<pVariable Name="WIDTH">Width</pVariable>
 		<pVariable Name="HEIGHT">Height</pVariable>
-		<Formula>WIDTH * HEIGHT</Formula>
+		<pVariable Name="PIXELFORMAT">PixelFormat</pVariable>
+		<Formula>WIDTH * HEIGHT * ((PIXELFORMAT>>16)&amp;0xFF) / 8</Formula>
 	</IntSwissKnife>
 
 	<Integer Name="TLParamsLocked">
@@ -520,4 +545,3 @@
 	</Port>
 
 </RegisterDescription>
-

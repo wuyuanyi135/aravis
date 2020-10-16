@@ -1,6 +1,6 @@
 /* Aravis - Digital camera library
  *
- * Copyright © 2009-2010 Emmanuel Pacaud
+ * Copyright © 2009-2019 Emmanuel Pacaud
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -20,8 +20,8 @@
  * Author: Emmanuel Pacaud <emmanuel@gnome.org>
  */
 
-#ifndef ARV_TOOLS_H
-#define ARV_TOOLS_H
+#ifndef ARV_MISC_H
+#define ARV_MISC_H
 
 #if !defined (ARV_H_INSIDE) && !defined (ARAVIS_COMPILATION)
 #error "Only <arv.h> can be included directly."
@@ -47,13 +47,6 @@ char *			arv_statistic_to_string 	(const ArvStatistic *statistic);
 GType arv_value_get_type (void);
 
 typedef struct _ArvValue ArvValue;
-struct _ArvValue {
-	GType type;
-	union {
-		gint64 v_int64;
-		double v_double;
-	} data;
-};
 
 ArvValue * 	arv_value_new_double 		(double v_double);
 ArvValue * 	arv_value_new_int64 		(double v_int64);
@@ -66,8 +59,8 @@ double 		arv_value_get_double 		(ArvValue *value);
 gboolean 	arv_value_holds_int64 		(ArvValue *value);
 double 		arv_value_holds_double 		(ArvValue *value);
 
-void 		arv_copy_memory_with_endianess 	(void *to, size_t to_size, guint to_endianess,
-						 void *from, size_t from_size, guint from_endianess);
+void 		arv_copy_memory_with_endianness	(void *to, size_t to_size, guint to_endianness,
+						 void *from, size_t from_size, guint from_endianness);
 
 void * 		arv_decompress 			(void *input_buffer, size_t input_size, size_t *output_size);
 

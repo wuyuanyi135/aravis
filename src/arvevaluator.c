@@ -1,6 +1,6 @@
 /* Aravis - Digital camera library
  *
- * Copyright © 2009-2010 Emmanuel Pacaud
+ * Copyright © 2009-2019 Emmanuel Pacaud
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -26,15 +26,13 @@
  */
 
 #include <arvevaluator.h>
-#include <arvdebug.h>
-#include <arvmisc.h>
+#include <arvdebugprivate.h>
+#include <arvmiscprivate.h>
 #include <arvstr.h>
 #include <math.h>
 #include <stdlib.h>
 
 #define ARV_EVALUATOR_STACK_SIZE	128
-
-static GObjectClass *parent_class = NULL;
 
 typedef enum {
 	ARV_EVALUATOR_STATUS_SUCCESS,
@@ -54,6 +52,27 @@ typedef enum {
 	ARV_EVALUATOR_STATUS_FORBIDDEN_RECUSRION
 } ArvEvaluatorStatus;
 
+typedef struct {
+	char *expression;
+	GSList *rpn_stack;
+	ArvEvaluatorStatus parsing_status;
+	GHashTable *variables;
+	GHashTable *sub_expressions;
+	GHashTable *constants;
+} ArvEvaluatorPrivate;
+
+struct _ArvEvaluator {
+	GObject	object;
+
+	ArvEvaluatorPrivate *priv;
+};
+
+struct _ArvEvaluatorClass {
+	GObjectClass parent_class;
+};
+
+G_DEFINE_TYPE_WITH_CODE (ArvEvaluator, arv_evaluator, G_TYPE_OBJECT, G_ADD_PRIVATE (ArvEvaluator))
+
 static const char *arv_evaluator_status_strings[] = {
 	"success",
 	"not parsed",
@@ -70,15 +89,6 @@ static const char *arv_evaluator_status_strings[] = {
 	"stack overflow",
 	"invalid double function",
 	"forbidden recursion"
-};
-
-struct _ArvEvaluatorPrivate {
-	char *expression;
-	GSList *rpn_stack;
-	ArvEvaluatorStatus parsing_status;
-	GHashTable *variables;
-	GHashTable *sub_expressions;
-	GHashTable *constants;
 };
 
 typedef enum {
@@ -273,7 +283,7 @@ arv_evaluator_token_debug (ArvEvaluatorToken *token, GHashTable *variables)
 					   value != NULL ? "" : " not found");
 			break;
 		case ARV_EVALUATOR_TOKEN_CONSTANT_INT64:
-			arv_log_evaluator ("(int64) %Ld", token->data.v_int64);
+			arv_log_evaluator ("(int64) %" G_GINT64_FORMAT, token->data.v_int64);
 			break;
 		case ARV_EVALUATOR_TOKEN_CONSTANT_DOUBLE:
 			arv_log_evaluator ("(double) %g", token->data.v_double);
@@ -551,6 +561,8 @@ evaluate (GSList *token_stack, GHashTable *variables, gint64 *v_int64, double *v
 	integer_mode = v_int64 != NULL;
 
 	for (iter = token_stack; iter != NULL; iter = iter->next) {
+		int actual_arguments_count;
+
 		token = iter->data;
 
 		if (index < (arv_evaluator_token_infos[token->token_id].n_args - 1)) {
@@ -570,7 +582,7 @@ evaluate (GSList *token_stack, GHashTable *variables, gint64 *v_int64, double *v
 
 		arv_evaluator_token_debug (token, variables);
 
-		int actual_arguments_count = arv_evaluator_token_infos[token->token_id].n_args;
+		actual_arguments_count = arv_evaluator_token_infos[token->token_id].n_args;
 
 		switch (token->token_id) {
 			case ARV_EVALUATOR_TOKEN_LOGICAL_AND:
@@ -956,7 +968,7 @@ evaluate (GSList *token_stack, GHashTable *variables, gint64 *v_int64, double *v
 		*v_int64 = arv_value_get_int64 (&stack[0].value);
 
 	if (arv_value_holds_int64 (&stack[0].value))
-		arv_log_evaluator ("[Evaluator::evaluate] Result = (int64) %Ld", arv_value_get_int64 (&stack[0].value));
+		arv_log_evaluator ("[Evaluator::evaluate] Result = (int64) %" G_GINT64_FORMAT, arv_value_get_int64 (&stack[0].value));
 	else
 		arv_log_evaluator ("[Evaluator::evaluate] Result = (double) %g", arv_value_get_double (&stack[0].value));
 
@@ -1439,7 +1451,7 @@ arv_evaluator_set_int64_variable (ArvEvaluator *evaluator, const char *name, gin
 			     g_strdup (name),
 			     arv_value_new_int64 (v_int64));
 
-	arv_log_evaluator ("[Evaluator::set_int64_variable] %s = %Ld", name, v_int64);
+	arv_log_evaluator ("[Evaluator::set_int64_variable] %s = %" G_GINT64_FORMAT, name, v_int64);
 }
 
 /**
@@ -1466,7 +1478,7 @@ arv_evaluator_new (const char *expression)
 static void
 arv_evaluator_init (ArvEvaluator *evaluator)
 {
-	evaluator->priv = G_TYPE_INSTANCE_GET_PRIVATE (evaluator, ARV_TYPE_EVALUATOR, ArvEvaluatorPrivate);
+	evaluator->priv = arv_evaluator_get_instance_private (evaluator);
 
 	evaluator->priv->expression = NULL;
 	evaluator->priv->rpn_stack = NULL;
@@ -1489,7 +1501,7 @@ arv_evaluator_finalize (GObject *object)
 	g_hash_table_unref (evaluator->priv->constants);
 	free_rpn_stack (evaluator);
 
-	parent_class->finalize (object);
+	G_OBJECT_CLASS (arv_evaluator_parent_class)->finalize (object);
 }
 
 static void
@@ -1497,17 +1509,5 @@ arv_evaluator_class_init (ArvEvaluatorClass *evaluator_class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (evaluator_class);
 
-#if !GLIB_CHECK_VERSION(2,38,0)
-	g_type_class_add_private (evaluator_class, sizeof (ArvEvaluatorPrivate));
-#endif
-
-	parent_class = g_type_class_peek_parent (evaluator_class);
-
 	object_class->finalize = arv_evaluator_finalize;
 }
-
-#if !GLIB_CHECK_VERSION(2,38,0)
-G_DEFINE_TYPE (ArvEvaluator, arv_evaluator, G_TYPE_OBJECT)
-#else
-G_DEFINE_TYPE_WITH_CODE (ArvEvaluator, arv_evaluator, G_TYPE_OBJECT, G_ADD_PRIVATE (ArvEvaluator))
-#endif
